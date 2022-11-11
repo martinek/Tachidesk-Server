@@ -39,7 +39,7 @@ class Downloader(
     private val scope: CoroutineScope,
     val sourceId: Long,
     private val downloadQueue: CopyOnWriteArrayList<DownloadChapter>,
-    private val notifier: () -> Unit,
+    private val notifier: (download: DownloadChapter?) -> Unit,
     private val onComplete: () -> Unit
 ) {
     private var job: Job? = null
@@ -47,7 +47,7 @@ class Downloader(
     class PauseDownloadException : Exception("Pause download")
 
     private suspend fun step(download: DownloadChapter?) {
-        notifier()
+        notifier(download)
         currentCoroutineContext().ensureActive()
         if (download != null && download != downloadQueue.firstOrNull { it.manga.sourceId.toLong() == sourceId && it.state != Error }) {
             if (download in downloadQueue) {
@@ -74,7 +74,7 @@ class Downloader(
             }
         }
 
-        notifier()
+        notifier(null)
     }
 
     suspend fun stop() {
@@ -142,7 +142,7 @@ class Downloader(
                 download.tries++
                 download.state = Error
             } finally {
-                notifier()
+                notifier(null)
             }
         }
     }

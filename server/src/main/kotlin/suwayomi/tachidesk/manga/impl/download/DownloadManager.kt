@@ -24,6 +24,7 @@ import mu.KotlinLogging
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
+import suwayomi.tachidesk.graphql.subscriptions.downloadSubscriptionSource
 import suwayomi.tachidesk.manga.impl.download.model.DownloadChapter
 import suwayomi.tachidesk.manga.impl.download.model.DownloadState.Downloading
 import suwayomi.tachidesk.manga.impl.download.model.DownloadStatus
@@ -88,9 +89,12 @@ object DownloadManager {
         }
     }
 
-    private fun notifyAllClients() {
+    private fun notifyAllClients(downloadChapter: DownloadChapter? = null) {
         scope.launch {
             notifyFlow.emit(Unit)
+        }
+        if (downloadChapter != null) {
+            downloadSubscriptionSource.publish(downloadChapter)
         }
     }
 
@@ -218,6 +222,7 @@ object DownloadManager {
                 manga
             )
             downloadQueue.add(downloadChapter)
+            downloadSubscriptionSource.publish(downloadChapter)
             logger.debug { "Added chapter ${chapter.id} to download queue (${manga.title} | ${chapter.name})" }
             return downloadChapter
         }
